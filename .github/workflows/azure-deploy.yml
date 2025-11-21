@@ -46,36 +46,11 @@ jobs:
         cp web.config deploy/
         cp package.json deploy/
         cp ecosystem.config.js deploy/
-        cp startup.sh deploy/
-        chmod +x deploy/startup.sh
-        
-        # Ensure bcryptjs is present in deployment
-        if [ ! -d deploy/node_modules/bcryptjs ]; then
-          echo "WARNING: bcryptjs not found in standalone build, copying manually..."
-          mkdir -p deploy/node_modules
-          cp -R node_modules/bcryptjs deploy/node_modules/
-          echo "bcryptjs copied successfully"
-        else
-          echo "✓ bcryptjs found in standalone build"
-        fi
         
         echo "========================================="
-        echo "Deployment package structure:"
+        echo "Deployment package created successfully"
+        echo "========================================="
         ls -la deploy/
-        echo "========================================="
-        echo "Static files:"
-        ls -la deploy/.next/static/ || true
-        echo "========================================="
-        echo "Checking for bcryptjs in node_modules:"
-        if [ -d deploy/node_modules/bcryptjs ]; then
-          echo "✓ bcryptjs directory exists"
-          ls -la deploy/node_modules/bcryptjs/
-        else
-          echo "✗ bcryptjs directory NOT FOUND"
-        fi
-        echo "========================================="
-        echo "All node_modules packages:"
-        ls -la deploy/node_modules/ | head -20
         echo "========================================="
 
     - name: Deploy to Azure Web App
