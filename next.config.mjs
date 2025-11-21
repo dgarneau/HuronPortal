@@ -4,6 +4,11 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   output: 'standalone',
+  experimental: {
+    outputFileTracingIncludes: {
+      '/api/**/*': ['./node_modules/@noble/hashes/**'],
+    },
+  },
 };
 
 export default nextConfig;

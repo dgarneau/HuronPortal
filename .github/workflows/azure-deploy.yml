@@ -47,10 +47,18 @@ jobs:
         cp package.json deploy/
         cp ecosystem.config.js deploy/
         
+        # Ensure @noble/hashes is present in deployment
+        if [ ! -d "deploy/node_modules/@noble" ]; then
+          echo "WARNING: @noble/hashes not found in standalone build, copying manually..."
+          mkdir -p deploy/node_modules/@noble
+          cp -R node_modules/@noble/hashes deploy/node_modules/@noble/
+          echo "@noble/hashes copied successfully"
+        else
+          echo "✓ @noble/hashes found in standalone build"
+        fi
+        
         echo "========================================="
         echo "Deployment package created successfully"
-        echo "========================================="
-        ls -la deploy/
         echo "========================================="
 
     - name: Deploy to Azure Web App
