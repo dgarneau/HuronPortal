@@ -4,10 +4,10 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   output: 'standalone',
+  serverExternalPackages: [],
   experimental: {
-    // Ensure all dependencies are properly bundled
     outputFileTracingIncludes: {
-      '/api/**/*': ['./node_modules/**/*'],
+      '/api/**/*': ['./node_modules/bcryptjs/**/*'],
     },
   },
 };
