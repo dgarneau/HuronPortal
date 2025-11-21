@@ -94,8 +94,20 @@ jobs:
         echo "========================================="
         echo "Verifying deployment package structure..."
         echo "========================================="
+        echo "Root deploy directory:"
+        ls -la deploy/ | head -20
+        echo ""
+        echo "deploy/.next directory:"
         ls -la deploy/.next/ || echo "❌ .next directory missing!"
+        echo ""
+        echo "deploy/.next/static directory:"
         ls -la deploy/.next/static/ || echo "❌ .next/static missing!"
+        echo ""
+        echo "Checking for BUILD_ID:"
+        cat deploy/.next/BUILD_ID 2>/dev/null || echo "❌ BUILD_ID missing!"
+        echo ""
+        echo "Checking server.js:"
+        ls -la deploy/server.js || echo "❌ server.js missing!"
         
         # Create deployment marker
         echo "DEPLOYMENT_ID=$GITHUB_SHA" > deploy/.deployment-id
