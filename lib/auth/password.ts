@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 
+// Use bcryptjs for password hashing (pure JS implementation)
 const SALT_ROUNDS = 12;
 
 /**
