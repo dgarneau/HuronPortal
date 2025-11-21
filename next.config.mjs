@@ -19,7 +19,10 @@ const nextConfig = {
   },
   experimental: {
     outputFileTracingIncludes: {
-      '/api/**/*': ['./node_modules/bcryptjs/**/*'],
+      '/api/**/*': [
+        './node_modules/bcryptjs/**/*',
+        './node_modules/bcrypt/**/*'
+      ],
     },
   },
 };
