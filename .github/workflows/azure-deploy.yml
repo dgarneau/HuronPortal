@@ -7,62 +7,27 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
-    
-    env:
-      COSMOS_ENDPOINT: ${{ secrets.COSMOS_ENDPOINT }}
-      COSMOS_KEY: ${{ secrets.COSMOS_KEY }}
-      COSMOS_DATABASE: ${{ secrets.COSMOS_DATABASE }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-
-    - name: Install dependencies
-      run: npm ci --production=false
-
-    - name: Build application
-      run: npm run build
-
-    - name: Install production dependencies only
-      run: |
-        rm -rf node_modules
-        npm ci --production
-
-    - name: Prepare deployment files
-      run: |
-        mkdir -p deploy
-        cp -r .next deploy/
-        cp -r node_modules deploy/
-        cp -r public deploy/ 2>/dev/null || true
-        cp package.json deploy/
-        cp next.config.mjs deploy/
-        cd deploy && zip -r ../deploy.zip . -q
 
     - name: Login to Azure
       uses: azure/login@v2
       with:
         creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}"}'
 
-    - name: Deploy to Azure Web App
+    - name: Deploy with zip (let Azure build)
       run: |
+        # Créer un zip du code source uniquement
+        zip -r deploy.zip . -x "*.git*" "node_modules/*" ".next/*" "*.md"
+        
+        # Déployer sur Azure (Azure fera le npm install et npm run build)
         az webapp deploy \
           --resource-group huronportal-rg \
           --name huronportal-app \
           --src-path deploy.zip \
           --type zip \
-          --restart true \
-          --clean true \
           --async false
-
-    - name: Verify deployment
-      run: |
-        echo "Deployment completed. App URL: https://huronportal-app.azurewebsites.net"
