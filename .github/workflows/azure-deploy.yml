@@ -31,19 +31,17 @@ jobs:
         COSMOS_DATABASE: ${{ secrets.COSMOS_DATABASE }}
         JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
-    - name: Create deployment package
+    - name: Create ZIP package
       run: |
-        cd .next/standalone
-        zip -r ../../deployment.zip . -q
-        cd ../..
-        cd .next/static
-        zip -ur ../../deployment.zip . -q
-        cd ../..
-        if [ -d "public" ]; then
-          cd public
-          zip -ur ../deployment.zip . -q
-          cd ..
-        fi
+        mkdir deploy
+        cp -r .next deploy/
+        cp -r node_modules deploy/
+        cp -r public deploy/ || true
+        cp package.json deploy/
+        cp next.config.mjs deploy/
+        cd deploy
+        zip -r ../app.zip . -q
+        cd ..
 
     - name: Login to Azure
       uses: azure/login@v2
@@ -61,6 +59,12 @@ jobs:
         az webapp deploy \
           --resource-group huronportal-rg \
           --name huronportal-app \
-          --src-path deployment.zip \
+          --src-path app.zip \
           --type zip \
-          --async true
+          --async false
+          
+    - name: Restart Web App
+      run: |
+        az webapp restart \
+          --resource-group huronportal-rg \
+          --name huronportal-app
