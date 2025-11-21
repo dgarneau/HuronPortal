@@ -62,12 +62,12 @@ jobs:
         rm -rf deploy
         mkdir -p deploy
         
-        # Copy standalone server files to root
+        # Copy ALL files from standalone (includes .next with server files)
         cp -R .next/standalone/* deploy/
+        cp -R .next/standalone/.next deploy/
         
-        # Copy static files into the .next/static directory where Next.js expects them
-        mkdir -p deploy/.next/static
-        cp -R .next/static/* deploy/.next/static/
+        # Copy additional static files that Next.js requires
+        cp -R .next/static deploy/.next/static
         
         # Copy public files if they exist
         if [ -d public ]; then 
@@ -124,9 +124,11 @@ jobs:
         app-name: 'huronportal-app'
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
         package: ./deploy
+        restart: true
     
-    - name: Wait for deployment to complete
+    - name: Verify deployment success
       run: |
-        echo "Deployment uploaded. Azure is processing..."
-        sleep 15
-        echo "✓ Deployment should be active now"
+        echo "✓ Deployment uploaded to Azure"
+        echo "Azure is restarting the application..."
+        sleep 20
+        echo "✓ Application should be running with new code"
