@@ -46,7 +46,8 @@ jobs:
         cp web.config deploy/
         cp package.json deploy/
         cp ecosystem.config.js deploy/
-        cp server.js deploy/
+        cp startup.sh deploy/
+        chmod +x deploy/startup.sh
         
         # Ensure bcryptjs is present in deployment
         if [ ! -d deploy/node_modules/bcryptjs ]; then
