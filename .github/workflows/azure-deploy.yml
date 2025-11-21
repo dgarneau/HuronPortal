@@ -46,6 +46,8 @@ jobs:
         ls -la deploy/
         echo "Static files:"
         ls -la deploy/.next/static/ || true
+        echo "Checking for bcryptjs in node_modules:"
+        ls -la deploy/node_modules/ | grep bcrypt || echo "No bcrypt modules found"
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v3
