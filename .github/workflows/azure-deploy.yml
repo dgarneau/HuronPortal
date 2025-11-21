@@ -60,10 +60,22 @@ jobs:
     - name: Create deployment package
       run: |
         rm -rf deploy
-        mkdir -p deploy/.next/static
+        mkdir -p deploy
+        
+        # Copy standalone server files to root
         cp -R .next/standalone/* deploy/
+        
+        # Copy static files into the .next/static directory where Next.js expects them
+        mkdir -p deploy/.next/static
         cp -R .next/static/* deploy/.next/static/
-        if [ -d public ]; then cp -R public deploy/public; fi
+        
+        # Copy public files if they exist
+        if [ -d public ]; then 
+          mkdir -p deploy/public
+          cp -R public/* deploy/public/
+        fi
+        
+        # Copy config files
         cp web.config deploy/
         cp package.json deploy/
         cp ecosystem.config.js deploy/
@@ -78,7 +90,14 @@ jobs:
           echo "✓ @noble/hashes found in standalone build"
         fi
         
-        # Create deployment marker to force cache invalidation
+        # Verify .next structure
+        echo "========================================="
+        echo "Verifying deployment package structure..."
+        echo "========================================="
+        ls -la deploy/.next/ || echo "❌ .next directory missing!"
+        ls -la deploy/.next/static/ || echo "❌ .next/static missing!"
+        
+        # Create deployment marker
         echo "DEPLOYMENT_ID=$GITHUB_SHA" > deploy/.deployment-id
         echo "BUILT_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> deploy/.deployment-id
         
