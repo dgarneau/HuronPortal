@@ -34,9 +34,9 @@ jobs:
     - name: Create deployment package
       run: |
         rm -rf deploy
-        mkdir -p deploy
+        mkdir -p deploy/.next/static
         cp -R .next/standalone/* deploy/
-        cp -R .next/static ./deploy/.next/static
+        cp -R .next/static/* deploy/.next/static/
         if [ -d public ]; then cp -R public ./deploy/public; fi
         ls -la ./deploy
 
