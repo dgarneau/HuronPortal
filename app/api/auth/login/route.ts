@@ -8,8 +8,18 @@ import { messages } from '@/lib/validation/messages';
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate environment variables
+    if (!process.env.COSMOS_ENDPOINT || !process.env.COSMOS_KEY) {
+      console.error('Missing required environment variables: COSMOS_ENDPOINT or COSMOS_KEY');
+      return createErrorResponse(
+        'Configuration serveur incorrecte',
+        'SERVER_CONFIG_ERROR',
+        500
+      );
+    }
+
     const body = await request.json();
-    console.log('Login request body:', body);
+    console.log('Login attempt for user:', body.username);
     
     // Validate input
     const validation = loginSchema.safeParse(body);
@@ -21,12 +31,15 @@ export async function POST(request: NextRequest) {
     const { username, password } = validation.data;
     
     // Find user by username or email
+    console.log('Looking up user:', username);
     let user = await getUserByUsername(username);
     if (!user) {
+      console.log('User not found by username, trying email');
       user = await getUserByEmail(username);
     }
     
     if (!user || !user.isActive) {
+      console.log('User not found or inactive');
       return createErrorResponse(
         messages.auth.invalidCredentials,
         'INVALID_CREDENTIALS',
@@ -34,9 +47,11 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    console.log('User found, verifying password');
     // Verify password
     const isValid = await verifyPassword(password, user.passwordHash);
     if (!isValid) {
+      console.log('Password verification failed');
       return createErrorResponse(
         messages.auth.invalidCredentials,
         'INVALID_CREDENTIALS',
@@ -44,12 +59,14 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    console.log('Password verified, creating session');
     // Create session
     const token = await createSession(user.id, user.username, user.role);
     
     // Update last login
     await updateLastLogin(user.id, user.username);
     
+    console.log('Login successful for user:', username);
     // Set cookie and return response
     const cookieOptions = setSessionCookie(token);
     const response = NextResponse.json(
@@ -64,6 +81,11 @@ export async function POST(request: NextRequest) {
     
     return response;
   } catch (error) {
+    console.error('Login error:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     return handleError(error);
   }
 }

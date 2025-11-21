@@ -8,9 +8,13 @@ function getCosmosClient(): CosmosClient {
     const key = process.env.COSMOS_KEY;
     
     if (!endpoint || !key) {
+      console.error('Cosmos DB configuration error:');
+      console.error('COSMOS_ENDPOINT:', endpoint ? 'set' : 'missing');
+      console.error('COSMOS_KEY:', key ? 'set' : 'missing');
       throw new Error('COSMOS_ENDPOINT and COSMOS_KEY must be defined in environment variables');
     }
     
+    console.log('Initializing Cosmos DB client with endpoint:', endpoint);
     cosmosClient = new CosmosClient({ endpoint, key });
   }
   return cosmosClient;

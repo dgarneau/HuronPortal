@@ -29,7 +29,7 @@ jobs:
         COSMOS_ENDPOINT: ${{ secrets.COSMOS_ENDPOINT }}
         COSMOS_KEY: ${{ secrets.COSMOS_KEY }}
         COSMOS_DATABASE: ${{ secrets.COSMOS_DATABASE }}
-        JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
 
     - name: Create deployment package
       run: |
@@ -37,8 +37,14 @@ jobs:
         mkdir -p deploy/.next/static
         cp -R .next/standalone/* deploy/
         cp -R .next/static/* deploy/.next/static/
-        if [ -d public ]; then cp -R public ./deploy/public; fi
-        ls -la ./deploy
+        if [ -d public ]; then cp -R public deploy/public; fi
+        cp web.config deploy/
+        cp package.json deploy/
+        cp ecosystem.config.js deploy/
+        echo "Deployment package structure:"
+        ls -la deploy/
+        echo "Static files:"
+        ls -la deploy/.next/static/ || true
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v3

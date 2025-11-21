@@ -41,7 +41,15 @@ az webapp create \
   --runtime "NODE:20-lts"
 ```
 
-### 1.5 Configurer les variables d'environnement sur Azure
+### 1.5 Configurer la commande de démarrage
+```bash
+az webapp config set \
+  --name huronportal-app \
+  --resource-group huronportal-rg \
+  --startup-file "node server.js"
+```
+
+### 1.6 Configurer les variables d'environnement sur Azure
 ```bash
 # Récupérer les informations Cosmos DB
 COSMOS_ENDPOINT=$(az cosmosdb show --name huronportal-cosmosdb --resource-group huronportal-rg --query documentEndpoint -o tsv)
@@ -55,12 +63,13 @@ az webapp config appsettings set \
     COSMOS_ENDPOINT="$COSMOS_ENDPOINT" \
     COSMOS_KEY="$COSMOS_KEY" \
     COSMOS_DATABASE="huronportal-db" \
-    JWT_SECRET="$(openssl rand -base64 32)" \
+    SESSION_SECRET="$(openssl rand -base64 32)" \
+    SESSION_DURATION="3600" \
     NODE_ENV="production" \
     WEBSITE_NODE_DEFAULT_VERSION="20-lts"
 ```
 
-### 1.6 Télécharger le profil de publication
+### 1.7 Télécharger le profil de publication
 ```bash
 az webapp deployment list-publishing-profiles \
   --name huronportal-app \
@@ -95,7 +104,7 @@ az cosmosdb keys list --name huronportal-cosmosdb --resource-group huronportal-r
 huronportal-db
 ```
 
-#### `JWT_SECRET`
+#### `SESSION_SECRET`
 ```bash
 # Générer un secret sécurisé
 openssl rand -base64 32
@@ -109,7 +118,7 @@ Créez un fichier `.env.local` avec les valeurs Azure :
 COSMOS_ENDPOINT=<votre_endpoint>
 COSMOS_KEY=<votre_key>
 COSMOS_DATABASE=huronportal-db
-JWT_SECRET=<votre_secret>
+SESSION_SECRET=<votre_secret>
 ```
 
 ### 3.2 Exécuter les scripts de seed
