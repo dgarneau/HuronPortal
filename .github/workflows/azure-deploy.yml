@@ -36,6 +36,27 @@ jobs:
         COSMOS_DATABASE: ${{ secrets.COSMOS_DATABASE }}
         SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
 
+    - name: Verify build output
+      run: |
+        echo "========================================="
+        echo "Checking for bcrypt references in compiled code..."
+        echo "========================================="
+        if grep -r "bcrypt" .next/standalone/.next/server/app/api/auth/login/route.js 2>/dev/null; then
+          echo "❌ ERROR: Found bcrypt reference in compiled code!"
+          echo "This should not happen with @noble/hashes"
+          exit 1
+        else
+          echo "✓ No bcrypt references found"
+        fi
+        
+        echo ""
+        echo "Checking lib/auth/password.ts source..."
+        cat lib/auth/password.ts | head -5
+        
+        echo ""
+        echo "Checking @noble/hashes in node_modules..."
+        ls -la node_modules/@noble/hashes/ || echo "❌ @noble/hashes not found!"
+
     - name: Create deployment package
       run: |
         rm -rf deploy
