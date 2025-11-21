@@ -1,0 +1,639 @@
+openapi: 3.0.3
+info:
+  title: Clients API - Huron Portal
+  description: API pour la gestion des clients CNC
+  version: 1.0.0
+  contact:
+    name: Huron Portal Team
+
+servers:
+  - url: https://huronportal.azurestaticapps.net/api
+    description: Production
+  - url: http://localhost:3000/api
+    description: Local Development
+
+tags:
+  - name: clients
+    description: Opérations sur les clients
+
+paths:
+  /clients:
+    get:
+      summary: Liste tous les clients
+      description: Retourne la liste paginée de tous les clients avec leur nombre de machines
+      tags:
+        - clients
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Numéro de page (1-indexed)
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: Nombre de clients par page
+          required: false
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: sortBy
+          in: query
+          description: Champ de tri
+          required: false
+          schema:
+            type: string
+            enum: [companyName, province, machineCount, createdAt]
+            default: companyName
+        - name: sortOrder
+          in: query
+          description: Ordre de tri
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+      responses:
+        '200':
+          description: Liste des clients récupérée avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Client'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    post:
+      summary: Créer un nouveau client
+      description: Crée un nouveau client (Admin et Contrôleur seulement)
+      tags:
+        - clients
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientCreateRequest'
+      responses:
+        '201':
+          description: Client créé avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Client'
+                  message:
+                    type: string
+                    example: Client créé avec succès
+        '400':
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Données invalides
+                  code:
+                    type: string
+                    example: VALIDATION_ERROR
+                  details:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        field:
+                          type: string
+                          example: companyName
+                        message:
+                          type: string
+                          example: Le nom de l'entreprise est requis
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Accès interdit (rôle Utilisateur)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Accès interdit
+                  code:
+                    type: string
+                    example: FORBIDDEN_ROLE
+                  message:
+                    type: string
+                    example: Seuls les Administrateurs et Contrôleurs peuvent créer des clients
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /clients/search:
+    get:
+      summary: Rechercher des clients
+      description: Recherche de clients par nom (pour le dropdown de sélection)
+      tags:
+        - clients
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: q
+          in: query
+          description: Terme de recherche (nom de l'entreprise)
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: limit
+          in: query
+          description: Nombre maximum de résultats
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: Résultats de recherche
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ClientSearchResult'
+        '400':
+          description: Paramètre de recherche manquant
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Paramètre de recherche requis
+                  code:
+                    type: string
+                    example: MISSING_QUERY
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /clients/{id}:
+    get:
+      summary: Obtenir un client par ID
+      description: Retourne les détails complets d'un client
+      tags:
+        - clients
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID du client (UUID)
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Client trouvé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Client'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Client non trouvé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Client non trouvé
+                  code:
+                    type: string
+                    example: CLIENT_NOT_FOUND
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    put:
+      summary: Modifier un client
+      description: Met à jour les informations d'un client (Admin et Contrôleur seulement)
+      tags:
+        - clients
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID du client (UUID)
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: If-Match
+          in: header
+          description: ETag de la version actuelle (concurrence optimiste)
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientUpdateRequest'
+      responses:
+        '200':
+          description: Client modifié avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Client'
+                  message:
+                    type: string
+                    example: Client modifié avec succès
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Accès interdit
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Accès interdit
+                  code:
+                    type: string
+                    example: FORBIDDEN_ROLE
+        '404':
+          description: Client non trouvé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Client non trouvé
+                  code:
+                    type: string
+                    example: CLIENT_NOT_FOUND
+        '412':
+          description: Conflit de concurrence
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Une autre modification a été effectuée
+                  code:
+                    type: string
+                    example: CONCURRENT_MODIFICATION
+                  message:
+                    type: string
+                    example: Ce client a été modifié par un autre utilisateur. Veuillez rafraîchir et réessayer.
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    delete:
+      summary: Supprimer un client
+      description: Supprime un client (Admin seulement). Bloqué si le client a des machines.
+      tags:
+        - clients
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID du client (UUID)
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Client supprimé avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Client supprimé avec succès
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Accès interdit (seuls les Admins peuvent supprimer)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Accès interdit
+                  code:
+                    type: string
+                    example: FORBIDDEN_ROLE
+                  message:
+                    type: string
+                    example: Seuls les Administrateurs peuvent supprimer des clients
+        '404':
+          description: Client non trouvé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Client non trouvé
+                  code:
+                    type: string
+                    example: CLIENT_NOT_FOUND
+        '409':
+          description: Client a des machines associées
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Impossible de supprimer ce client
+                  code:
+                    type: string
+                    example: CLIENT_HAS_MACHINES
+                  message:
+                    type: string
+                    example: Ce client a {count} machine(s) associée(s). Veuillez d'abord supprimer ou réassigner les machines.
+                  data:
+                    type: object
+                    properties:
+                      machineCount:
+                        type: integer
+                        example: 3
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+
+  schemas:
+    Client:
+      type: object
+      required:
+        - id
+        - companyName
+        - address
+        - province
+        - postalCode
+        - machineCount
+        - createdAt
+        - updatedAt
+        - _etag
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifiant unique du client
+        companyName:
+          type: string
+          maxLength: 200
+          description: Nom de l'entreprise
+          example: "Fabrication ABC Inc."
+        address:
+          type: string
+          maxLength: 300
+          description: Adresse complète
+          example: "1234 Rue Industrielle"
+        province:
+          type: string
+          enum: [QC, ON, AB, BC, MB, NB, NL, NT, NS, NU, PE, SK, YT]
+          description: Code de province canadienne
+          example: "QC"
+        postalCode:
+          type: string
+          pattern: '^[A-Z]\d[A-Z]\d[A-Z]\d$'
+          description: Code postal canadien (format normalisé, sans espace)
+          example: "H2X1Y5"
+        machineCount:
+          type: integer
+          minimum: 0
+          description: Nombre de machines associées (dénormalisé pour performance)
+          example: 5
+        createdAt:
+          type: string
+          format: date-time
+          description: Date de création
+        updatedAt:
+          type: string
+          format: date-time
+          description: Date de dernière modification
+        _etag:
+          type: string
+          description: Version de l'entité pour la concurrence optimiste
+
+    ClientCreateRequest:
+      type: object
+      required:
+        - companyName
+        - address
+        - province
+        - postalCode
+      properties:
+        companyName:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Nom de l'entreprise
+          example: "Fabrication ABC Inc."
+        address:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: Adresse complète
+          example: "1234 Rue Industrielle"
+        province:
+          type: string
+          enum: [QC, ON, AB, BC, MB, NB, NL, NT, NS, NU, PE, SK, YT]
+          description: Code de province canadienne
+          example: "QC"
+        postalCode:
+          type: string
+          pattern: '^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$'
+          description: Code postal canadien (A1A 1A1 ou A1A1A1)
+          example: "H2X 1Y5"
+
+    ClientUpdateRequest:
+      type: object
+      required:
+        - companyName
+        - address
+        - province
+        - postalCode
+      properties:
+        companyName:
+          type: string
+          minLength: 1
+          maxLength: 200
+        address:
+          type: string
+          minLength: 1
+          maxLength: 300
+        province:
+          type: string
+          enum: [QC, ON, AB, BC, MB, NB, NL, NT, NS, NU, PE, SK, YT]
+        postalCode:
+          type: string
+          pattern: '^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$'
+
+    ClientSearchResult:
+      type: object
+      required:
+        - id
+        - companyName
+        - province
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifiant unique
+        companyName:
+          type: string
+          description: Nom de l'entreprise
+          example: "Fabrication ABC Inc."
+        province:
+          type: string
+          description: Province
+          example: "QC"
+        machineCount:
+          type: integer
+          description: Nombre de machines
+          example: 5
+
+    Pagination:
+      type: object
+      required:
+        - currentPage
+        - totalPages
+        - totalItems
+        - itemsPerPage
+      properties:
+        currentPage:
+          type: integer
+          example: 1
+        totalPages:
+          type: integer
+          example: 10
+        totalItems:
+          type: integer
+          example: 487
+        itemsPerPage:
+          type: integer
+          example: 50
+        hasNextPage:
+          type: boolean
+          example: true
+        hasPreviousPage:
+          type: boolean
+          example: false
+
+  responses:
+    Unauthorized:
+      description: Non authentifié
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Authentification requise
+              code:
+                type: string
+                example: UNAUTHORIZED
+
+    ValidationError:
+      description: Erreur de validation
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Données invalides
+              code:
+                type: string
+                example: VALIDATION_ERROR
+              details:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    field:
+                      type: string
+                    message:
+                      type: string
+
+    ServerError:
+      description: Erreur serveur
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Une erreur est survenue
+              code:
+                type: string
+                example: SERVER_ERROR

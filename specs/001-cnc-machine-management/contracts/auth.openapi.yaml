@@ -1,0 +1,198 @@
+openapi: 3.0.3
+info:
+  title: Huron Portal - Authentication API
+  version: 1.0.0
+  description: API d'authentification pour le portail Huron (gestion des machines CNC)
+
+servers:
+  - url: https://huronportal.azurestaticapps.net/api
+    description: Production
+  - url: http://localhost:3000/api
+    description: Local development
+
+paths:
+  /auth/login:
+    post:
+      summary: Connexion utilisateur
+      description: Authentifie un utilisateur avec username/password et retourne un token de session
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 50
+                  example: "admin"
+                password:
+                  type: string
+                  minLength: 8
+                  maxLength: 128
+                  format: password
+                  example: "Password123!"
+      responses:
+        '200':
+          description: Authentification réussie
+          headers:
+            Set-Cookie:
+              description: Cookie HTTP-only avec token JWT (1h expiration)
+              schema:
+                type: string
+                example: "session=eyJhbGc...; HttpOnly; Secure; SameSite=Strict; Max-Age=3600"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Connexion réussie"
+                  user:
+                    $ref: '#/components/schemas/UserPublic'
+        '401':
+          description: Identifiants invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Nom d'utilisateur ou mot de passe incorrect"
+                code: "INVALID_CREDENTIALS"
+        '429':
+          description: Trop de tentatives de connexion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Trop de tentatives. Réessayez dans 15 minutes"
+                code: "TOO_MANY_ATTEMPTS"
+
+  /auth/logout:
+    post:
+      summary: Déconnexion utilisateur
+      description: Invalide la session utilisateur
+      tags:
+        - Authentication
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Déconnexion réussie
+          headers:
+            Set-Cookie:
+              description: Cookie session supprimé
+              schema:
+                type: string
+                example: "session=; HttpOnly; Secure; SameSite=Strict; Max-Age=0"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Déconnexion réussie"
+
+  /auth/session:
+    get:
+      summary: Vérifier la session
+      description: Vérifie si la session utilisateur est valide
+      tags:
+        - Authentication
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Session valide
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                    example: true
+                  user:
+                    $ref: '#/components/schemas/UserPublic'
+        '401':
+          description: Session invalide ou expirée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Votre session a expiré. Veuillez vous reconnecter"
+                code: "SESSION_EXPIRED"
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+
+  schemas:
+    UserPublic:
+      type: object
+      description: Informations utilisateur publiques (sans password hash)
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "usr_a1b2c3d4"
+        username:
+          type: string
+          example: "admin"
+        name:
+          type: string
+          example: "Administrateur Système"
+        email:
+          type: string
+          format: email
+          example: "admin@huronportal.com"
+        role:
+          type: string
+          enum: [Admin, Utilisateur, Contrôleur]
+          example: "Admin"
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-11-20T14:30:00Z"
+
+    Error:
+      type: object
+      required:
+        - error
+        - code
+      properties:
+        error:
+          type: string
+          description: Message d'erreur en français
+        code:
+          type: string
+          description: Code d'erreur machine-readable
+          example: "INVALID_CREDENTIALS"
+        details:
+          type: object
+          description: Détails additionnels (optionnel)
+          additionalProperties: true
+
+tags:
+  - name: Authentication
+    description: Endpoints d'authentification et gestion de session

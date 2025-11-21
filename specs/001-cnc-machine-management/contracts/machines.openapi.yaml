@@ -1,0 +1,355 @@
+openapi: 3.0.3
+info:
+  title: Huron Portal - Machines API
+  version: 1.0.0
+  description: API de gestion des machines CNC
+
+servers:
+  - url: https://huronportal.azurestaticapps.net/api
+    description: Production
+  - url: http://localhost:3000/api
+    description: Local development
+
+paths:
+  /machines:
+    get:
+      summary: Liste des machines
+      description: Récupère la liste de toutes les machines actives
+      tags:
+        - Machines
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: clientId
+          in: query
+          description: Filtrer par client
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Liste des machines
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  machines:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Machine'
+                  total:
+                    type: integer
+                    example: 15
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Créer une machine
+      description: Crée une nouvelle machine (Admin ou Contrôleur seulement)
+      tags:
+        - Machines
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MachineInput'
+      responses:
+        '201':
+          description: Machine créée avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Machine créée avec succès"
+                  machine:
+                    $ref: '#/components/schemas/Machine'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Numéro #OL déjà utilisé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Ce numéro #OL existe déjà"
+                code: "DUPLICATE_NUMERO_OL"
+
+  /machines/{id}:
+    get:
+      summary: Détails d'une machine
+      description: Récupère les détails d'une machine spécifique
+      tags:
+        - Machines
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+      responses:
+        '200':
+          description: Détails de la machine
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Machine'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Modifier une machine
+      description: Modifie une machine existante (Admin ou Contrôleur seulement)
+      tags:
+        - Machines
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/MachineInput'
+                - type: object
+                  properties:
+                    _etag:
+                      type: string
+                      description: ETag pour concurrence optimiste
+      responses:
+        '200':
+          description: Machine modifiée avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Machine mise à jour avec succès"
+                  machine:
+                    $ref: '#/components/schemas/Machine'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '412':
+          description: Modification concurrente détectée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Cet enregistrement a été modifié par un autre utilisateur"
+                code: "CONCURRENT_MODIFICATION"
+
+    delete:
+      summary: Supprimer une machine
+      description: Supprime une machine (Admin seulement)
+      tags:
+        - Machines
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+      responses:
+        '200':
+          description: Machine supprimée avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Machine supprimée avec succès"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Interdit - Seul un Admin peut supprimer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Vous n'êtes pas autorisé à effectuer cette action"
+                code: "FORBIDDEN_ROLE"
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+
+  parameters:
+    MachineId:
+      name: id
+      in: path
+      required: true
+      description: ID de la machine
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Machine:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "mch_x7y8z9a0"
+        numeroOL:
+          type: string
+          example: "OL-2025-001"
+        type:
+          type: string
+          example: "Fraiseuse CNC 5 axes Haas VF-4"
+        clientId:
+          type: string
+          format: uuid
+          example: "clt_m1n2o3p4"
+        clientName:
+          type: string
+          example: "Aérospatiale Québec Inc."
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        createdByName:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        updatedBy:
+          type: string
+        _etag:
+          type: string
+
+    MachineInput:
+      type: object
+      required:
+        - numeroOL
+        - type
+        - clientId
+      properties:
+        numeroOL:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: '^[A-Z0-9-]+$'
+          example: "OL-2025-001"
+        type:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: "Fraiseuse CNC 5 axes"
+        clientId:
+          type: string
+          format: uuid
+          example: "clt_m1n2o3p4"
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+        details:
+          type: object
+
+  responses:
+    Unauthorized:
+      description: Non authentifié
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Authentification requise"
+            code: "UNAUTHORIZED"
+
+    Forbidden:
+      description: Accès refusé
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Vous n'êtes pas autorisé à effectuer cette action"
+            code: "FORBIDDEN"
+
+    NotFound:
+      description: Ressource non trouvée
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Machine non trouvée"
+            code: "NOT_FOUND"
+
+    ValidationError:
+      description: Erreur de validation
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                properties:
+                  details:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        type: string
+          example:
+            error: "Données invalides"
+            code: "VALIDATION_ERROR"
+            details:
+              numeroOL: ["Ce champ est requis"]
+              type: ["Minimum 1 caractères requis"]
+
+    ConflictError:
+      description: Conflit (ressource existe déjà)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+tags:
+  - name: Machines
+    description: Gestion des machines CNC
