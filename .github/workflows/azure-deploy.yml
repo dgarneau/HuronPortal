@@ -10,6 +10,12 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     
+    env:
+      COSMOS_ENDPOINT: ${{ secrets.COSMOS_ENDPOINT }}
+      COSMOS_KEY: ${{ secrets.COSMOS_KEY }}
+      COSMOS_DATABASE: ${{ secrets.COSMOS_DATABASE }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -18,43 +24,45 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20.x'
+        cache: 'npm'
 
-    - name: Create deployment ZIP
+    - name: Install dependencies
+      run: npm ci --production=false
+
+    - name: Build application
+      run: npm run build
+
+    - name: Install production dependencies only
       run: |
-        # Exclure node_modules et .next du ZIP
-        zip -r deploy.zip . -x "node_modules/*" ".next/*" ".git/*" "*.md" 2>/dev/null || true
-        
+        rm -rf node_modules
+        npm ci --production
+
+    - name: Prepare deployment files
+      run: |
+        mkdir -p deploy
+        cp -r .next deploy/
+        cp -r node_modules deploy/
+        cp -r public deploy/ 2>/dev/null || true
+        cp package.json deploy/
+        cp next.config.mjs deploy/
+        cd deploy && zip -r ../deploy.zip . -q
+
     - name: Login to Azure
       uses: azure/login@v2
       with:
-        creds: |
-          {
-            "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
-            "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
-            "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
-            "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
-          }
+        creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}"}'
 
-    - name: Configure App Settings
-      run: |
-        az webapp config appsettings set \
-          --name huronportal-app \
-          --resource-group huronportal-rg \
-          --settings \
-            COSMOS_ENDPOINT="${{ secrets.COSMOS_ENDPOINT }}" \
-            COSMOS_KEY="${{ secrets.COSMOS_KEY }}" \
-            COSMOS_DATABASE="${{ secrets.COSMOS_DATABASE }}" \
-            JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-            NODE_ENV="production" \
-            SCM_DO_BUILD_DURING_DEPLOYMENT="true" \
-            WEBSITE_NODE_DEFAULT_VERSION="~20"
-
-    - name: Deploy to Azure Web App  
+    - name: Deploy to Azure Web App
       run: |
         az webapp deploy \
           --resource-group huronportal-rg \
           --name huronportal-app \
           --src-path deploy.zip \
           --type zip \
-          --async false \
-          --timeout 600
+          --restart true \
+          --clean true \
+          --async false
+
+    - name: Verify deployment
+      run: |
+        echo "Deployment completed. App URL: https://huronportal-app.azurewebsites.net"
