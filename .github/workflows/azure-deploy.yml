@@ -6,10 +6,6 @@ on:
       - main
   workflow_dispatch:
 
-env:
-  AZURE_WEBAPP_NAME: huronportal-app
-  NODE_VERSION: '20.x'
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -21,7 +17,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ env.NODE_VERSION }}
+        node-version: '20.x'
         cache: 'npm'
 
     - name: Install dependencies
@@ -35,16 +31,36 @@ jobs:
         COSMOS_DATABASE: ${{ secrets.COSMOS_DATABASE }}
         JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
-    - name: Prepare deployment package
+    - name: Create deployment package
       run: |
-        cp -r .next/standalone ./deployment
-        cp -r .next/static ./deployment/.next/static
-        mkdir -p ./deployment/public
-        cp -r public/* ./deployment/public/ || true
-        
-    - name: Deploy to Azure Web App
-      uses: azure/webapps-deploy@v3
+        cd .next/standalone
+        zip -r ../../deployment.zip . -q
+        cd ../..
+        cd .next/static
+        zip -ur ../../deployment.zip . -q
+        cd ../..
+        if [ -d "public" ]; then
+          cd public
+          zip -ur ../deployment.zip . -q
+          cd ..
+        fi
+
+    - name: Login to Azure
+      uses: azure/login@v2
       with:
-        app-name: huronportal-app
-        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-        package: ./deployment
+        creds: |
+          {
+            "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+            "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+            "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+            "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+          }
+
+    - name: Deploy to Azure Web App
+      run: |
+        az webapp deploy \
+          --resource-group huronportal-rg \
+          --name huronportal-app \
+          --src-path deployment.zip \
+          --type zip \
+          --async true
