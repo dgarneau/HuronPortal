@@ -18,31 +18,12 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20.x'
-        cache: 'npm'
 
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Build Next.js application
-      run: npm run build
-      env:
-        COSMOS_ENDPOINT: ${{ secrets.COSMOS_ENDPOINT }}
-        COSMOS_KEY: ${{ secrets.COSMOS_KEY }}
-        COSMOS_DATABASE: ${{ secrets.COSMOS_DATABASE }}
-        JWT_SECRET: ${{ secrets.JWT_SECRET }}
-
-    - name: Create ZIP package
+    - name: Create deployment ZIP
       run: |
-        mkdir deploy
-        cp -r .next deploy/
-        cp -r node_modules deploy/
-        cp -r public deploy/ || true
-        cp package.json deploy/
-        cp next.config.mjs deploy/
-        cd deploy
-        zip -r ../app.zip . -q
-        cd ..
-
+        # Exclure node_modules et .next du ZIP
+        zip -r deploy.zip . -x "node_modules/*" ".next/*" ".git/*" "*.md" 2>/dev/null || true
+        
     - name: Login to Azure
       uses: azure/login@v2
       with:
@@ -54,17 +35,26 @@ jobs:
             "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
           }
 
-    - name: Deploy to Azure Web App
+    - name: Configure App Settings
+      run: |
+        az webapp config appsettings set \
+          --name huronportal-app \
+          --resource-group huronportal-rg \
+          --settings \
+            COSMOS_ENDPOINT="${{ secrets.COSMOS_ENDPOINT }}" \
+            COSMOS_KEY="${{ secrets.COSMOS_KEY }}" \
+            COSMOS_DATABASE="${{ secrets.COSMOS_DATABASE }}" \
+            JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+            NODE_ENV="production" \
+            SCM_DO_BUILD_DURING_DEPLOYMENT="true" \
+            WEBSITE_NODE_DEFAULT_VERSION="~20"
+
+    - name: Deploy to Azure Web App  
       run: |
         az webapp deploy \
           --resource-group huronportal-rg \
           --name huronportal-app \
-          --src-path app.zip \
+          --src-path deploy.zip \
           --type zip \
-          --async false
-          
-    - name: Restart Web App
-      run: |
-        az webapp restart \
-          --resource-group huronportal-rg \
-          --name huronportal-app
+          --async false \
+          --timeout 600
