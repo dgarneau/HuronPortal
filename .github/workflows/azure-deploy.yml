@@ -46,6 +46,14 @@ jobs:
         cp web.config deploy/
         cp package.json deploy/
         cp ecosystem.config.js deploy/
+        
+        # Ensure bcryptjs is present in deployment
+        if [ ! -d deploy/node_modules/bcryptjs ]; then
+          echo "bcryptjs not found in standalone build, copying manually..."
+          mkdir -p deploy/node_modules
+          cp -R node_modules/bcryptjs deploy/node_modules/
+        fi
+        
         echo "Deployment package structure:"
         ls -la deploy/
         echo "Static files:"

@@ -5,6 +5,7 @@ const nextConfig = {
   compress: true,
   output: 'standalone',
   experimental: {
+    serverComponentsExternalPackages: ['bcryptjs'],
     outputFileTracingIncludes: {
       '/api/**/*': [
         './node_modules/bcryptjs/**/*'
