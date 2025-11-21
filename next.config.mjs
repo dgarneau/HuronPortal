@@ -14,6 +14,13 @@ const nextConfig = {
           external => typeof external !== 'string' || !external.includes('bcryptjs')
         );
       }
+
+      // Alias bcrypt to bcryptjs to resolve any "Cannot find module 'bcrypt'" errors
+      // This handles cases where a dependency or leftover code might try to require 'bcrypt'
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        bcrypt: 'bcryptjs',
+      };
     }
     return config;
   },
