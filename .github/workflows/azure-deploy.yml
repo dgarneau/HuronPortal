@@ -45,8 +45,11 @@ jobs:
       with:
         name: node-app
 
-    - name: Unzip artifact for deployment
-      run: unzip -q release.zip
+    - name: Prepare deployment directory
+      run: |
+        mkdir -p deploy
+        cd deploy
+        unzip -o -q ../release.zip
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
@@ -54,4 +57,4 @@ jobs:
         app-name: 'huronportal-app'
         slot-name: 'Production'
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-        package: .
+        package: ./deploy
