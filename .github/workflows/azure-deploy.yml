@@ -35,17 +35,16 @@ jobs:
         COSMOS_DATABASE: ${{ secrets.COSMOS_DATABASE }}
         JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
-    - name: Create deployment package
+    - name: Prepare deployment package
       run: |
-        mkdir -p deployment
-        cp -r .next deployment/
-        cp -r public deployment/ || true
-        cp package*.json deployment/
-        cp next.config.mjs deployment/
+        cp -r .next/standalone ./deployment
+        cp -r .next/static ./deployment/.next/static
+        mkdir -p ./deployment/public
+        cp -r public/* ./deployment/public/ || true
         
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v3
       with:
-        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        app-name: huronportal-app
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
         package: ./deployment
