@@ -33,10 +33,12 @@ jobs:
 
     - name: Create deployment package
       run: |
-        cp -r .next/standalone ./deploy
-        cp -r .next/static ./deploy/.next/static
+        rm -rf deploy
+        mkdir -p deploy
+        cp -R .next/standalone/* deploy/
+        cp -R .next/static ./deploy/.next/static
+        if [ -d public ]; then cp -R public ./deploy/public; fi
         ls -la ./deploy
-        ls -la ./deploy/.next
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v3
