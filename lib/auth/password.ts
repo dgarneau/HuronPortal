@@ -1,5 +1,5 @@
-import { pbkdf2 } from '@noble/hashes/pbkdf2';
-import { sha256 } from '@noble/hashes/sha256';
+import { pbkdf2 } from '@noble/hashes/pbkdf2.js';
+import { sha256 } from '@noble/hashes/sha2.js';
 
 // Use PBKDF2 for password hashing (pure JS, zero dependencies)
 const ITERATIONS = 100000;
