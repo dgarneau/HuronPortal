@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserByUsername, getUserByEmail, updateLastLogin } from '@/lib/cosmos/models/user';
+
+console.log('[route.ts] Loading password module...');
+try {
+  console.log('[route.ts] Module resolution paths:', require.resolve.paths('bcryptjs'));
+} catch (e) {
+  console.log('[route.ts] Could not get resolution paths:', e);
+}
+
 import { verifyPassword } from '@/lib/auth/password';
+console.log('[route.ts] Password module loaded successfully');
 import { createSession, setSessionCookie } from '@/lib/auth/session';
 import { loginSchema } from '@/lib/validation/schemas';
 import { handleError, createErrorResponse, createSuccessResponse } from '@/lib/utils/errors';
