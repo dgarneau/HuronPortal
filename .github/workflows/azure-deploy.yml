@@ -14,20 +14,44 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Login to Azure
-      uses: azure/login@v2
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
       with:
-        creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}"}'
+        node-version: '20.x'
+        cache: 'npm'
 
-    - name: Deploy with zip (let Azure build)
-      run: |
-        # Créer un zip du code source uniquement
-        zip -r deploy.zip . -x "*.git*" "node_modules/*" ".next/*" "*.md"
-        
-        # Déployer sur Azure (Azure fera le npm install et npm run build)
-        az webapp deploy \
-          --resource-group huronportal-rg \
-          --name huronportal-app \
-          --src-path deploy.zip \
-          --type zip \
-          --async false
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build Next.js
+      run: npm run build
+      env:
+        COSMOS_ENDPOINT: ${{ secrets.COSMOS_ENDPOINT }}
+        COSMOS_KEY: ${{ secrets.COSMOS_KEY }}
+        COSMOS_DATABASE: ${{ secrets.COSMOS_DATABASE }}
+        JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+    - name: Zip artifact for deployment
+      run: zip -r release.zip .next node_modules public package.json next.config.mjs -q
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: node-app
+        path: release.zip
+
+    - name: Download artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: node-app
+
+    - name: Unzip artifact for deployment
+      run: unzip -q release.zip
+
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'huronportal-app'
+        slot-name: 'Production'
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        package: .
