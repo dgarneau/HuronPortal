@@ -114,6 +114,86 @@ export const clientUpdateSchema = z.object({
     .optional(),
 });
 
+// Machine Type schemas
+export const machineTypeCreateSchema = z.object({
+  machineTypeId: z.number()
+    .int('Machine Type ID must be an integer')
+    .positive('Machine Type ID must be greater than 0'),
+  machineTypeName: z.string()
+    .min(1, 'Machine type name is required')
+    .max(100, 'Machine type name cannot exceed 100 characters')
+    .trim(),
+  manufacturer: z.string()
+    .min(1, 'Manufacturer is required')
+    .max(100, 'Manufacturer cannot exceed 100 characters')
+    .trim(),
+  description: z.string()
+    .max(500, 'Description cannot exceed 500 characters')
+    .optional(),
+  x: z.number()
+    .int('X-axis travel must be an integer')
+    .min(0, 'X-axis travel must be 0 or greater')
+    .max(10000, 'X-axis travel cannot exceed 10000mm'),
+  y: z.number()
+    .int('Y-axis travel must be an integer')
+    .min(0, 'Y-axis travel must be 0 or greater')
+    .max(10000, 'Y-axis travel cannot exceed 10000mm'),
+  z: z.number()
+    .int('Z-axis travel must be an integer')
+    .min(0, 'Z-axis travel must be 0 or greater')
+    .max(10000, 'Z-axis travel cannot exceed 10000mm'),
+  a: z.number()
+    .refine((val) => val >= -1, 'A-axis rotation must be -1 or greater (-1 = infinite)'),
+  b: z.number()
+    .refine((val) => val >= -1, 'B-axis rotation must be -1 or greater (-1 = infinite)'),
+  c: z.number()
+    .refine((val) => val >= -1, 'C-axis rotation must be -1 or greater (-1 = infinite)'),
+});
+
+export const machineTypeUpdateSchema = z.object({
+  machineTypeId: z.number()
+    .int('Machine Type ID must be an integer')
+    .positive('Machine Type ID must be greater than 0')
+    .optional(),
+  machineTypeName: z.string()
+    .min(1, 'Machine type name is required')
+    .max(100, 'Machine type name cannot exceed 100 characters')
+    .trim()
+    .optional(),
+  manufacturer: z.string()
+    .min(1, 'Manufacturer is required')
+    .max(100, 'Manufacturer cannot exceed 100 characters')
+    .trim()
+    .optional(),
+  description: z.string()
+    .max(500, 'Description cannot exceed 500 characters')
+    .optional(),
+  x: z.number()
+    .int('X-axis travel must be an integer')
+    .min(0, 'X-axis travel must be 0 or greater')
+    .max(10000, 'X-axis travel cannot exceed 10000mm')
+    .optional(),
+  y: z.number()
+    .int('Y-axis travel must be an integer')
+    .min(0, 'Y-axis travel must be 0 or greater')
+    .max(10000, 'Y-axis travel cannot exceed 10000mm')
+    .optional(),
+  z: z.number()
+    .int('Z-axis travel must be an integer')
+    .min(0, 'Z-axis travel must be 0 or greater')
+    .max(10000, 'Z-axis travel cannot exceed 10000mm')
+    .optional(),
+  a: z.number()
+    .refine((val) => val >= -1, 'A-axis rotation must be -1 or greater (-1 = infinite)')
+    .optional(),
+  b: z.number()
+    .refine((val) => val >= -1, 'B-axis rotation must be -1 or greater (-1 = infinite)')
+    .optional(),
+  c: z.number()
+    .refine((val) => val >= -1, 'C-axis rotation must be -1 or greater (-1 = infinite)')
+    .optional(),
+});
+
 // Export type inference
 export type UserCreateInput = z.infer<typeof userCreateSchema>;
 export type UserUpdateInput = z.infer<typeof userUpdateSchema>;
@@ -122,3 +202,5 @@ export type MachineCreateInput = z.infer<typeof machineCreateSchema>;
 export type MachineUpdateInput = z.infer<typeof machineUpdateSchema>;
 export type ClientCreateInput = z.infer<typeof clientCreateSchema>;
 export type ClientUpdateInput = z.infer<typeof clientUpdateSchema>;
+export type MachineTypeCreateInput = z.infer<typeof machineTypeCreateSchema>;
+export type MachineTypeUpdateInput = z.infer<typeof machineTypeUpdateSchema>;

@@ -51,6 +51,12 @@ export default async function AppLayout({
               Machines
             </Link>
             <Link
+              href="/machine-types"
+              className="text-secondary-700 hover:text-primary-600 font-medium transition-colors"
+            >
+              Types de machines
+            </Link>
+            <Link
               href="/clients"
               className="text-secondary-700 hover:text-primary-600 font-medium transition-colors"
             >

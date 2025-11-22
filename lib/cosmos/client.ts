@@ -41,9 +41,10 @@ const containers: Record<string, Container | null> = {
   users: null,
   machines: null,
   clients: null,
+  machineTypes: null,
 };
 
-export async function getContainer(name: 'users' | 'machines' | 'clients'): Promise<Container> {
+export async function getContainer(name: 'users' | 'machines' | 'clients' | 'machineTypes'): Promise<Container> {
   if (!containers[name]) {
     const database = await getDatabase();
     
@@ -51,6 +52,7 @@ export async function getContainer(name: 'users' | 'machines' | 'clients'): Prom
       users: '/username',
       machines: '/id',
       clients: '/id',
+      machineTypes: '/id',
     };
     
     const { container } = await database.containers.createIfNotExists({
